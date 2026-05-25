@@ -86,6 +86,9 @@ void setup() {
   // Initialize OLED display
   u8g2.begin();
 
+  // Set the display to a comfortable low brightness (Value between 0 and 255)
+  u8g2.setContrast(0);
+
   // Initialize RTC
   if (!rtc.begin()) {
     Serial.println("Couldn't find RTC module!");
@@ -105,16 +108,20 @@ void loop() {
   DateTime now = rtc.now();
 
   // Dynamic character buffers for string formatting
-  char timeBuffer[9];     // Format: HH:MM:SS
-  char dateBuffer[12];    // Format: DD-MMM-YYYY
+  char timeBuffer[9];     // Format: HH:MM
+  char secBuffer[4];      // Format: :SS
+  char dayBuffer[4];      // Format: DD
+  char monthBuffer[4];    // Format: MMM
   char tempBuffer[10];    // Format: XX.XX C
 
   // Array of months for clean presentation text
   const char* months[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
 
   // Populate data buffers using standard formatters
-  sprintf(timeBuffer, "%02d:%02d:%02d", now.hour(), now.minute(), now.second());
-  sprintf(dateBuffer, "%02d %s %d", now.day(), months[now.month() - 1], now.year());
+  sprintf(timeBuffer, "%02d:%02d", now.hour(), now.minute());
+  sprintf(secBuffer, ":%02d", now.second());
+  sprintf(dayBuffer, "%02d", now.day());
+  sprintf(monthBuffer, "%s", months[now.month() - 1]);
   
   float currentTemp = rtc.getTemperature();
   dtostrf(currentTemp, 4, 1, tempBuffer); // Convert float to string with 1 decimal place
@@ -122,24 +129,27 @@ void loop() {
   // ---------------- UI Rendering Phase ----------------
   u8g2.clearBuffer();
 
-  // Outer framing boundary layout
-  u8g2.drawFrame(0, 0, 128, 64);
+  // 1. Draw Main Time (Large HH:MM)
+  u8g2.setFont(u8g2_font_logisoso32_tf); 
+  u8g2.drawStr(0, 36, timeBuffer); // Shifted slightly left to 0 for maximum space
 
-  // Render Time Header (Large, clean high-contrast font)
-  u8g2.setFont(u8g2_font_logisoso22_tf); 
-  u8g2.drawStr(4, 28, timeBuffer);
+  // 2. Draw Seconds (:SS)
+  u8g2.setFont(u8g2_font_9x15_tf);
+  u8g2.drawStr(94, 18, secBuffer); // Tucked nicely next to the minutes
 
-  // Horizontal separating design rule line
-  u8g2.drawHLine(6, 35, 116);
+  // 3. Draw Large Day Number (DD) - Switched to the verified 'fur14' font
+  u8g2.setFont(u8g2_font_fur14_tf); 
+  u8g2.drawStr(2, 62, dayBuffer);
 
-  // Render Date String (Medium clean font)
+  // 4. Draw Month (MMM) next to the large day
   u8g2.setFont(u8g2_font_6x12_tf);
-  u8g2.drawStr(8, 52, dateBuffer);
+  u8g2.drawStr(30, 62, monthBuffer);
 
-  // Render Temperature Reading in corner
-  u8g2.setFont(u8g2_font_6x10_tf);
-  u8g2.setCursor(82, 51);
+  // 5. Draw Temperature in the bottom right corner
+  u8g2.setFont(u8g2_font_fur11_tf);
+  u8g2.setCursor(70, 62);
   u8g2.print(tempBuffer);
+  u8g2.print(static_cast<char>(176)); // Generates the proper degree symbol (°) in U8g2 fonts
   u8g2.print("C");
 
   // Push frame layout memory to the physical screen panel
