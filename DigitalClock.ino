@@ -74,6 +74,8 @@ void syncTimeWithNTP() {
 
   // Shut down the Wi-Fi radio assembly completely to minimize power draw and radio noise
   WiFi.disconnect(true);
+  WiFi.forceSleepBegin();
+  yield();
   Serial.println("WiFi Radio powered down.");
 }
 
